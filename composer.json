@@ -1,0 +1,29 @@
+{
+  "name": "lucascherifi/localhook-client",
+  "license": "MIT",
+  "bin": [
+    "localhook"
+  ],
+  "authors": [
+    {
+      "name": "Lucas CHERIFI",
+      "email": "lucas@cherifi.info"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Kasifi\\Localhook\\": "src"
+    }
+  },
+  "minimum-stability": "stable",
+  "require": {
+    "symfony/var-dumper": "^3.0",
+    "symfony/console": "^3.0",
+    "symfony/finder": "^3.0",
+    "symfony/process": "^3.0",
+    "symfony/yaml": "^3.0",
+    "padraic/phar-updater": "^1.0",
+    "guzzlehttp/guzzle": "^6.2",
+    "lucascherifi/localhook-core": "0.*"
+  }
+}
