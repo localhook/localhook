@@ -26,13 +26,13 @@ class RunCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $port = 1337; // TODO Dynamize
+        $socketIoServerUrl = 'http://localhost:1337'; // TODO Dynamize
         $endpoint = $input->getArgument('endpoint');
         $max = $input->getOption('max');
         $counter = 0;
 
         $output->writeln('Watch for a notification to endpoint ' . $endpoint . ' ...');
-        $socketIoClientConnector = new SocketIoClientConnector($port);
+        $socketIoClientConnector = new SocketIoClientConnector($socketIoServerUrl);
         $socketIoClientConnector->ensureConnection();
 
         $socketIoClientConnector->subscribeChannel($endpoint);
