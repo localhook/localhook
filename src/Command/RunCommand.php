@@ -40,8 +40,7 @@ class RunCommand extends AbstractCommand
         $output->writeln('Watch for notification to endpoint ' . $endpoint . ' ...');
         try {
             $this->socketIoClientConnector->subscribeChannel($endpoint, $privateKey);
-        }
-        catch (Exception $e) {// Todo use specific exception
+        } catch (Exception $e) {// Todo use specific exception
             $configuration = $this->configurationStorage->get();
             unset($configuration['webhooks'][$endpoint]);
             $this->configurationStorage->replaceConfiguration($configuration)->save();
@@ -50,7 +49,6 @@ class RunCommand extends AbstractCommand
                 'Associated webhook configuration has been removed from your local configuration file.'
             );
         }
-
 
         while (true) {
             // apply max limitation
@@ -72,12 +70,36 @@ class RunCommand extends AbstractCommand
             }
 
             $client = new Client();
-            $request = new Request($notification['method'], $url);
 
-            $output->writeln('REQUEST: ' . $notification['method'] . ' ' . $url);
+            if (count($notification['query'])) {
+                $url .= '?' . http_build_query($notification['query']);
+            }
+
+            dump(array_merge($notification, ['url' => $url]));
 
             try {
-                $response = $client->send($request, ['timeout' => 15]);
+                switch ($notification['method']) {
+                    case 'GET':
+                        $response = $client->get($url, [
+                            'headers' => $notification['headers'],
+                            'timeout' => 15,
+                        ]);
+                        break;
+                    case 'POST':
+                        $response = $client->post($url, [
+                            'timeout'     => 15,
+                            'headers'     => $notification['headers'],
+                            'form_params' => [
+                                $notification['request'],
+                            ],
+                        ]);
+                        break;
+                    default:
+                        throw new Exception(
+                            'Request method "' . $notification['method'] . '" not managed in this version.' .
+                            'Please request the feature in Github.'
+                        );
+                }
                 $output->writeln('RESPONSE: ' . $response->getStatusCode());
             } catch (RequestException $e) {
                 if ($e->hasResponse()) {
