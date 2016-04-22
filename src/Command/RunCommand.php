@@ -29,6 +29,7 @@ class RunCommand extends AbstractCommand
         $endpoint = $input->getArgument('endpoint');
         // Retrieve configuration (and store it if necessary)
         $webHookConfiguration = $this->retrieveWebHookConfiguration($endpoint);
+        $url = $webHookConfiguration['localUrl'];
         $endpoint = $webHookConfiguration['endpoint'];
         //$privateKey = $webHookConfiguration['privateKey'];
         $max = $input->getOption('max');
@@ -45,7 +46,6 @@ class RunCommand extends AbstractCommand
             $counter++;
 
             $notification = $this->socketIoClientConnector->waitForNotification();
-            $url = 'http://localhost/notifications';
 
             $client = new Client();
             $request = new Request($notification['method'], $url);

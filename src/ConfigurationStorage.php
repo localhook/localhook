@@ -44,6 +44,7 @@ class ConfigurationStorage
         $fileContent = json_encode($this->configuration, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
         $this->fs->dumpFile($this->baseConfigFilePath, $fileContent);
+
         return $this;
     }
 
@@ -55,6 +56,17 @@ class ConfigurationStorage
         $json = file_get_contents($this->baseConfigFilePath);
 
         $this->configuration = json_decode($json, true);
+
+        return $this;
+    }
+
+    public function deleteFile()
+    {
+        if (!$this->fs->exists($this->baseConfigFilePath)) {
+            throw new NoConfigurationException('No configuration file found at "' . $this->baseConfigFilePath . '" .');
+        }
+        $this->fs->remove($this->baseConfigFilePath);
+        $this->configuration = [];
 
         return $this;
     }
@@ -75,6 +87,19 @@ class ConfigurationStorage
     public function merge($configuration)
     {
         $this->configuration = array_replace_recursive($this->configuration, $configuration);
+
+        return $this;
+    }
+
+    /**
+     * @param array $configuration
+     *
+     * @return $this
+     */
+    public function replaceConfiguration($configuration)
+    {
+        $this->configuration = $configuration;
+
         return $this;
     }
 }

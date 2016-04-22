@@ -61,11 +61,6 @@ abstract class AbstractCommand extends Command
         }
     }
 
-    protected function askPrivateKey()
-    {
-        return $privateKey = $this->io->ask('Private key', '1----------------------------------');
-    }
-
     protected function retrieveWebHookConfiguration($endpoint)
     {
         if (!$endpoint) {
@@ -76,18 +71,18 @@ abstract class AbstractCommand extends Command
                 $question = new ChoiceQuestion('Select a configured webhook', array_keys($webHooks));
                 $endpoint = $this->io->askQuestion($question);
             } else {
-                $this->addWebHookConfiguration();
+                $endpoint = $this->addWebHookConfiguration();
             }
         } elseif (!isset($endpoint, $this->configurationStorage->get()['webhooks'][$endpoint])) {
-            $this->addWebHookConfiguration();
+            $endpoint = $this->addWebHookConfiguration();
         }
 
-        return ['privateKey' => $this->configurationStorage->get()['webhooks'][$endpoint], 'endpoint' => $endpoint];
+        return array_merge($this->configurationStorage->get()['webhooks'][$endpoint], ['endpoint' => $endpoint]);
     }
 
     private function addWebHookConfiguration()
     {
-        $privateKey = $this->askPrivateKey();
+        $privateKey = $this->io->ask('Private key', '1----------------------------------');
         $configuration = $this->socketIoClientConnector->retrieveConfigurationFromPrivateKey($privateKey);
         $endpoint = $configuration['endpoint'];
         if (!$endpoint) {
@@ -95,6 +90,14 @@ abstract class AbstractCommand extends Command
         }
         $this->io->comment('Associated endpoint: ' . $endpoint);
 
-        $this->configurationStorage->merge(['webhooks' => [$endpoint => $privateKey]])->save();
+        $url = $this->io->ask('Local URL to call when notification received', 'http://localhost/my-project/notifications');
+
+        $this->configurationStorage->merge([
+            'webhooks' => [
+                $endpoint => ['privateKey' => $privateKey, 'localUrl' => $url],
+            ],
+        ])->save();
+
+        return $endpoint;
     }
 }
