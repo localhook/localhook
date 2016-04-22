@@ -31,12 +31,12 @@ class RunCommand extends AbstractCommand
         $webHookConfiguration = $this->retrieveWebHookConfiguration($endpoint);
         $url = $webHookConfiguration['localUrl'];
         $endpoint = $webHookConfiguration['endpoint'];
-        //$privateKey = $webHookConfiguration['privateKey'];
+        $privateKey = $webHookConfiguration['privateKey'];
         $max = $input->getOption('max');
         $counter = 0;
 
         $output->writeln('Watch for notification to endpoint ' . $endpoint . ' ...');
-        $this->socketIoClientConnector->subscribeChannel($endpoint);
+        $this->socketIoClientConnector->subscribeChannel($endpoint, $privateKey);
 
         while (true) {
             // apply max limitation
