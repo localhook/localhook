@@ -2,9 +2,11 @@
 
 namespace Kasifi\Localhook\Command;
 
+use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
+use Localhook\Core\Exceptions\DeletedChannelException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,7 +38,19 @@ class RunCommand extends AbstractCommand
         $counter = 0;
 
         $output->writeln('Watch for notification to endpoint ' . $endpoint . ' ...');
-        $this->socketIoClientConnector->subscribeChannel($endpoint, $privateKey);
+        try {
+            $this->socketIoClientConnector->subscribeChannel($endpoint, $privateKey);
+        }
+        catch (Exception $e) {// Todo use specific exception
+            $configuration = $this->configurationStorage->get();
+            unset($configuration['webhooks'][$endpoint]);
+            $this->configurationStorage->replaceConfiguration($configuration)->save();
+            throw new Exception(
+                'Channel has been deleted by remote. ' .
+                'Associated webhook configuration has been removed from your local configuration file.'
+            );
+        }
+
 
         while (true) {
             // apply max limitation
@@ -45,7 +59,17 @@ class RunCommand extends AbstractCommand
             }
             $counter++;
 
-            $notification = $this->socketIoClientConnector->waitForNotification();
+            try {
+                $notification = $this->socketIoClientConnector->waitForNotification();
+            } catch (DeletedChannelException $e) {
+                $configuration = $this->configurationStorage->get();
+                unset($configuration['webhooks'][$endpoint]);
+                $this->configurationStorage->replaceConfiguration($configuration)->save();
+                throw new Exception(
+                    'Channel has been deleted by remote. ' .
+                    'Associated webhook configuration has been removed from your local configuration file.'
+                );
+            }
 
             $client = new Client();
             $request = new Request($notification['method'], $url);
