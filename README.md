@@ -2,7 +2,7 @@
 
 # Localhook
 
-A simple tool to receive http/https webhook notifications for development purpose
+A simple tool to receive http/https webhook notifications for development purpose.
 
 This tool simplify web developments while using API using webhooks.
 
@@ -10,9 +10,9 @@ This tool simplify web developments while using API using webhooks.
 
 2) Configure a new webhook on the server
 
-- go to https://yourdomain.com/admin (enter login / password)
-- Type a webhook path, ex : webhook_1
-- store the generated hash (GENERATED_HASH).
+- go to https://yourdomain.com/admin (default auth: admin / admin)
+- Type a webhook path, ex : `webhook_1`
+- Store somewhere the generated private key.
 
 3) Install, configure and run the client:
 
@@ -20,13 +20,12 @@ This tool simplify web developments while using API using webhooks.
 ```bash
 composer global require lucascherifi/localhook-client
 ```
-- Configure:
+- Start the client:
 ```bash
-localhook configure # when prompted, enter the <GENERATED_HASH> and the local endpoint "http://localhost:8080/notifications"
+localhook run
 ```
-- Run :
-```bash
-localhook run webhook_1
-```
+At first run, you'll be prompt for the server URL and a private key watching a webhook you created.
+
+# when prompted, enter the private and a local endpoint to call, i.e. "http://localhost:8080/notifications"
 
 The client will now redirect all notifications received at https://yourdomain.com/webhook_1 to http://localhost:8080/notifications
