@@ -24,8 +24,11 @@ composer global require lucascherifi/localhook-client
 ```bash
 localhook run
 ```
-At first run, you'll be prompt for the server URL and a private key watching a webhook you created.
+At first run, you'll be prompt for:
+- The server Socket IO URL, i.e.: `http://yourdomain.com:1337`
+- A private key watching a webhook you created, i.e. `webhook_1`
+- A local URL to call for each notification, i.e. "http://localhost/notifications"
 
-# when prompted, enter the private and a local endpoint to call, i.e. "http://localhost:8080/notifications"
+The client will now redirect all notifications, as this example :
 
-The client will now redirect all notifications received at https://yourdomain.com/webhook_1 to http://localhost:8080/notifications
+    POST https://yourdomain.com/webhook_1 ==> POST http://localhost/notifications
