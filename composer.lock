@@ -180,16 +180,16 @@
         },
         {
             "name": "lucascherifi/localhook-core",
-            "version": "0.7.14",
+            "version": "0.7.15",
             "source": {
                 "type": "git",
                 "url": "https://github.com/lucascherifi/localhook-core.git",
-                "reference": "15165d56b95de45995c998016fc100c614ea7d5c"
+                "reference": "7924b3e79caa654e8fd96b65f25ce7df3d68458f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/lucascherifi/localhook-core/zipball/15165d56b95de45995c998016fc100c614ea7d5c",
-                "reference": "15165d56b95de45995c998016fc100c614ea7d5c",
+                "url": "https://api.github.com/repos/lucascherifi/localhook-core/zipball/7924b3e79caa654e8fd96b65f25ce7df3d68458f",
+                "reference": "7924b3e79caa654e8fd96b65f25ce7df3d68458f",
                 "shasum": ""
             },
             "require": {
@@ -205,7 +205,7 @@
             "license": [
                 "MIT"
             ],
-            "time": "2016-04-22 09:04:26"
+            "time": "2016-04-22 18:20:13"
         },
         {
             "name": "padraic/humbug_get_contents",
