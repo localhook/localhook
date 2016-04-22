@@ -15,6 +15,7 @@ if (file_exists($a = __DIR__ . '/../../autoload.php')) {
 }
 
 // import the Symfony Console Application
+use Kasifi\Localhook\Command\ConfigureCommand;
 use Kasifi\Localhook\Command\RunCommand;
 use Symfony\Component\Console\Application;
 

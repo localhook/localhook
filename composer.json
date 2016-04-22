@@ -24,6 +24,7 @@
     "symfony/yaml": "^3.0",
     "padraic/phar-updater": "^1.0",
     "guzzlehttp/guzzle": "^6.2",
-    "lucascherifi/localhook-core": "0.*"
+    "lucascherifi/localhook-core": "0.*",
+    "symfony/filesystem": "^3.0"
   }
 }
