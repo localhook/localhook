@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "84f543f2b5cc04552005a3c912a935d7",
-    "content-hash": "1f7eadb55efe0589de898a96c926a44f",
+    "hash": "fba05d190c3a69a83c88914bc5b4bde9",
+    "content-hash": "d9b20a6a2dcb379ee09e3b7d561914ea",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -177,35 +177,6 @@
                 "uri"
             ],
             "time": "2016-04-13 19:56:01"
-        },
-        {
-            "name": "lucascherifi/localhook-core",
-            "version": "0.7.19",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/lucascherifi/localhook-core.git",
-                "reference": "ff9a28082eaf5453bd5cc49fe6a111f35c53d1df"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/lucascherifi/localhook-core/zipball/ff9a28082eaf5453bd5cc49fe6a111f35c53d1df",
-                "reference": "ff9a28082eaf5453bd5cc49fe6a111f35c53d1df",
-                "shasum": ""
-            },
-            "require": {
-                "wisembly/elephant.io": "^3.1"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Localhook\\Core\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "time": "2016-04-22 20:37:02"
         },
         {
             "name": "padraic/humbug_get_contents",
