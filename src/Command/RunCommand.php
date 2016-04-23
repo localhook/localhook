@@ -30,7 +30,6 @@ class RunCommand extends AbstractCommand
         $endpoint = $input->getArgument('endpoint');
         // Retrieve configuration (and store it if necessary)
         $webHookConfiguration = $this->retrieveWebHookConfiguration($endpoint);
-        $url = $webHookConfiguration['localUrl'];
         $endpoint = $webHookConfiguration['endpoint'];
         $privateKey = $webHookConfiguration['privateKey'];
         $max = $input->getOption('max');
@@ -70,6 +69,7 @@ class RunCommand extends AbstractCommand
 
             $client = new Client();
 
+            $url = $webHookConfiguration['localUrl'];
             if (count($notification['query'])) {
                 $url .= '?' . http_build_query($notification['query']);
             }
