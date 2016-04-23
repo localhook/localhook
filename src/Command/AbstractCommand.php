@@ -2,6 +2,7 @@
 
 namespace Kasifi\Localhook\Command;
 
+use ElephantIO\Exception\ServerConnectionFailureException;
 use Exception;
 use Kasifi\Localhook\ConfigurationStorage;
 use Kasifi\Localhook\Exceptions\NoConfigurationException;
@@ -57,7 +58,12 @@ abstract class AbstractCommand extends Command
         if (!$this->socketIoClientConnector) {
             $this->output->writeln('Connecting to ' . $this->configurationStorage->get()['server_url'] . ' ...');
             $this->socketIoClientConnector = new SocketIoClientConnector($this->configurationStorage->get()['server_url']);
-            $this->socketIoClientConnector->ensureConnection();
+            try {
+                $this->socketIoClientConnector->ensureConnection();
+            } catch (ServerConnectionFailureException $e) {
+                $this->io->error('The Localhook server at ' . $this->configurationStorage->get()['server_url'] . ' seems to be stopped.');
+                exit(1);
+            }
         }
     }
 

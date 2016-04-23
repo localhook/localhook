@@ -5,7 +5,6 @@ namespace Kasifi\Localhook\Command;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Psr7\Request;
 use Localhook\Core\Exceptions\DeletedChannelException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
