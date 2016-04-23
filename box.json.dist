@@ -1,0 +1,22 @@
+{
+  "chmod": "0755",
+  "compression": "GZ",
+  "directories": [
+    "*"
+  ],
+  "finder": [
+    {
+      "name": "*.*",
+      "exclude": [
+        "tests",
+        "Tests"
+      ],
+      "in": "vendor"
+    }
+  ],
+  "git-version": "package_version",
+  "intercept": true,
+  "main": "localhook",
+  "output": "localhook.phar",
+  "stub": true
+}
