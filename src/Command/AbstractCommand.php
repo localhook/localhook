@@ -6,7 +6,7 @@ use ElephantIO\Exception\ServerConnectionFailureException;
 use Exception;
 use Kasifi\Localhook\ConfigurationStorage;
 use Kasifi\Localhook\Exceptions\NoConfigurationException;
-use Localhook\Core\SocketIoClientConnector;
+use Kasifi\Localhook\SocketIoClientConnector;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
