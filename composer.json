@@ -17,14 +17,14 @@
   },
   "minimum-stability": "stable",
   "require": {
-    "symfony/var-dumper": "^3.0",
-    "symfony/console": "^3.0",
-    "symfony/finder": "^3.0",
-    "symfony/process": "^3.0",
-    "symfony/yaml": "^3.0",
-    "padraic/phar-updater": "^1.0",
-    "guzzlehttp/guzzle": "^6.2",
-    "symfony/filesystem": "^3.0",
-    "wisembly/elephant.io": "^3.1"
+    "symfony/var-dumper": "@stable",
+    "symfony/console": "@stable",
+    "symfony/finder": "@stable",
+    "symfony/process": "@stable",
+    "symfony/yaml": "@stable",
+    "padraic/phar-updater": "@stable",
+    "guzzlehttp/guzzle": "@stable",
+    "symfony/filesystem": "@stable",
+    "wisembly/elephant.io": "@stable"
   }
 }
