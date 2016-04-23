@@ -20,7 +20,7 @@ class RunCommand extends AbstractCommand
             ->setName('run')
             ->addArgument('endpoint', InputArgument::OPTIONAL, 'The name of the endpoint.')
             ->addOption('max', null, InputOption::VALUE_OPTIONAL, 'The maximum number of notification before stop watcher', null)
-            ->setDescription('Watch for a notification and output it in JSON format.');
+            ->setDescription('Run the localhook client');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
