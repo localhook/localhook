@@ -1,12 +1,11 @@
 <?php
 
-namespace Kasifi\Localhook\Command;
+namespace Localhook\Localhook\Command;
 
-use ElephantIO\Exception\ServerConnectionFailureException;
 use Exception;
-use Kasifi\Localhook\ConfigurationStorage;
-use Kasifi\Localhook\Exceptions\NoConfigurationException;
-use Kasifi\Localhook\SocketIoClientConnector;
+use Localhook\Localhook\ConfigurationStorage;
+use Localhook\Localhook\Exceptions\NoConfigurationException;
+use Localhook\Localhook\Ratchet\UserClient;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -27,12 +26,27 @@ abstract class AbstractCommand extends Command
     /** @var ConfigurationStorage */
     protected $configurationStorage;
 
-    /** @var SocketIoClientConnector */
-    protected $socketIoClientConnector;
+    /** @var UserClient */
+    protected $socketUserClient;
+
+    /** @var string */
+    protected $webHookPrivateKey;
+
+    /** @var string */
+    protected $webHookLocalUrl;
+
+    /** @var string */
+    protected $serverUrl;
+
+    /** @var boolean */
+    protected $noConfigFile;
+
+    /** @var string */
+    protected $endpoint;
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->configurationStorage = new ConfigurationStorage();
+        $this->configurationStorage = new ConfigurationStorage($this->noConfigFile);
         $this->io = new SymfonyStyle($input, $output);
         $this->input = new $input;
         $this->output = new $output;
@@ -42,73 +56,92 @@ abstract class AbstractCommand extends Command
     protected function loadConfiguration()
     {
         try {
-            $this->configurationStorage->loadFromFile()->get();
+            $configuration = $this->configurationStorage->loadFromFile()->get();
+            if (!$this->serverUrl && isset($configuration['server_url'])) {
+                $this->serverUrl = $configuration['server_url'];
+            }
         } catch (NoConfigurationException $e) {
 
             $this->io->comment($e->getMessage());
 
-            $serverUrl = $this->io->ask('Server URL', 'http://localhost:1337');
-
-            $this->configurationStorage->merge(['server_url' => $serverUrl])->save();
-        }
-    }
-
-    protected function ensureServerConnection()
-    {
-        if (!$this->socketIoClientConnector) {
-            $this->output->writeln('Connecting to ' . $this->configurationStorage->get()['server_url'] . ' ...');
-            $this->socketIoClientConnector = new SocketIoClientConnector($this->configurationStorage->get()['server_url']);
-            try {
-                $this->socketIoClientConnector->ensureConnection();
-            } catch (ServerConnectionFailureException $e) {
-                $this->io->error('The Localhook server at ' . $this->configurationStorage->get()['server_url'] . ' seems to be stopped.');
-                exit(1);
+            if (!$this->serverUrl) {
+                $this->serverUrl = $this->io->ask('Server URL', 'ws://127.0.0.1:1337');
             }
+
+            $this->configurationStorage->merge(['server_url' => $this->serverUrl])->save();
         }
     }
 
-    protected function retrieveWebHookConfiguration($endpoint)
+    protected function detectWebHookConfiguration($endpoint, callable $onSuccess)
     {
         if (!$endpoint) {
             if (
                 isset($this->configurationStorage->get()['webhooks'])
-                && $nbConfigs = count($webHooks = $this->configurationStorage->get()['webhooks'])
+                && $nbConfigs = count($this->configurationStorage->get()['webhooks'])
             ) {
+                $webHooks = $this->configurationStorage->get()['webhooks'];
                 if ($nbConfigs > 1) {
                     $question = new ChoiceQuestion('Select a configured webhook', array_keys($webHooks));
                     $endpoint = $this->io->askQuestion($question);
                 } else {
-                    $endpoint = array_keys($webHooks)[0];
+                    $endpoint = $webHooks[0]['endpoint'];
                 }
-
+                $this->endpoint = $endpoint;
+                $webHookConfiguration = $this->getWebHookConfigurationBy('endpoint', $endpoint);
+                $this->webHookPrivateKey = $webHookConfiguration['privateKey'];
+                $onSuccess($webHookConfiguration);
             } else {
-                $endpoint = $this->addWebHookConfiguration();
+                $this->newWebHookConfiguration($onSuccess);
             }
         } elseif (!isset($endpoint, $this->configurationStorage->get()['webhooks'][$endpoint])) {
-            $endpoint = $this->addWebHookConfiguration();
+            $this->newWebHookConfiguration($onSuccess);
         }
-
-        return array_merge($this->configurationStorage->get()['webhooks'][$endpoint], ['endpoint' => $endpoint]);
     }
 
-    private function addWebHookConfiguration()
+    private function newWebHookConfiguration($onSuccess)
     {
-        $privateKey = $this->io->ask('Private key', '1----------------------------------');
-        $configuration = $this->socketIoClientConnector->retrieveConfigurationFromPrivateKey($privateKey);
-        $endpoint = $configuration['endpoint'];
-        if (!$endpoint) {
-            throw new Exception('This private key doesn\'t match any endpoint');
+        if (!$this->webHookPrivateKey) {
+            $this->webHookPrivateKey = $this->io->ask('Private key', '1----------------------------------');
         }
-        $this->io->comment('Associated endpoint: ' . $endpoint);
+        $this->socketUserClient->executeRetrieveConfigurationFromSecret(
+            $this->webHookPrivateKey, function ($msg) use ($onSuccess) {
+            $endpoint = $msg['endpoint'];
+            $this->endpoint = $endpoint;
+            if (!$endpoint) {
+                throw new Exception('This private key does not match any endpoint');
+            }
+            $this->io->comment('Associated endpoint: ' . $endpoint);
+            if (!$this->webHookLocalUrl) {
+                $this->webHookLocalUrl = $this->io->ask(
+                    'Local URL to call when notification received',
+                    'http://localhost/my-project/notifications'
+                );
+            }
 
-        $url = $this->io->ask('Local URL to call when notification received', 'http://localhost/my-project/notifications');
+            $webHookConfiguration = [
+                'privateKey' => $this->webHookPrivateKey,
+                'localUrl'   => $this->webHookLocalUrl,
+                'endpoint'   => $endpoint,
+            ];
+            $this->configurationStorage->merge([
+                'webhooks' => [$webHookConfiguration],
+            ])->save();
+            $onSuccess($webHookConfiguration);
+        });
+    }
 
-        $this->configurationStorage->merge([
-            'webhooks' => [
-                $endpoint => ['privateKey' => $privateKey, 'localUrl' => $url],
-            ],
-        ])->save();
+    private function getWebHookConfigurationBy($key, $value)
+    {
+        $configuration = $this->configurationStorage->get();
+        if (!isset($configuration['webhooks'])) {
+            return null;
+        }
+        foreach ($configuration['webhooks'] as $webHook) {
+            if ($webHook[$key] == $value) {
+                return $webHook;
+            }
+        }
 
-        return $endpoint;
+        return null;
     }
 }
