@@ -81,17 +81,18 @@
                         <div class="wy-nav-content">
                 <div class="rst-content">
                     <div role="main" class="document">
-                        <h1 id="localhook">Localhook</h1>
-<p>Webhooks is a common thing in API world. This feature is very useful.</p>
-<p>Therefore, it's not always easy to deal with it for developers:</p>
-<ul>
-<li>Some API required you to use HTTPS only (and not &quot;self authenticated&quot;).</li>
-<li>The webhook listener has to be available on the web. Sometime <strong>it's not possible to give a web access to your local version</strong> of a project (entreprise proxy, etc).</li>
-</ul>
-<p>Localhook is solution to help developers to work with webhooks in development context.</p>
-<ul>
-<li>View the <a href="get-started.html">get started</a> guide.</li>
-</ul>
+                        <h1 id="client-installation-guide">Client installation guide</h1>
+<h2 id="phar">Phar</h2>
+<p>Alternatively, you can download <code>localhook.phar</code>:</p>
+<pre><code class="language-bash">$ curl -OSL https https://git.io/vwu9e -o localhook.phar &amp;&amp; chmod +x localhook.phar</code></pre>
+<p>Please note that as Github is using a DDOS protection system, if using CURL fails, just manually download the phar file.</p>
+<p>If you want to run localhook instead of php localhook.phar, move it to /usr/local/bin:</p>
+<pre><code class="language-bash">$ sudo mv localhook.phar /usr/local/bin/localhook</code></pre>
+<p>Please note that you need to have the phar extension installed to use this method. It should be installed by default on most OSes.</p>
+<h2 id="composer">Composer</h2>
+<p>If you have already set up a global install of Composer just run:</p>
+<pre><code class="language-bash">$ composer global require localhook/localhook</code></pre>
+<p>Be aware that in order for Localhook to be awesome it will install a good amount of other dependencies. If you rather have it self-contained, use the Phar method just below.</p>
                     </div>
 
                     <footer>

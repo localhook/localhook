@@ -81,17 +81,15 @@
                         <div class="wy-nav-content">
                 <div class="rst-content">
                     <div role="main" class="document">
-                        <h1 id="localhook">Localhook</h1>
-<p>Webhooks is a common thing in API world. This feature is very useful.</p>
-<p>Therefore, it's not always easy to deal with it for developers:</p>
+                        <h1 id="quick-start-installation">Quick start installation</h1>
 <ul>
-<li>Some API required you to use HTTPS only (and not &quot;self authenticated&quot;).</li>
-<li>The webhook listener has to be available on the web. Sometime <strong>it's not possible to give a web access to your local version</strong> of a project (entreprise proxy, etc).</li>
+<li><a href="client-install.html">Install the client</a> documentation.</li>
 </ul>
-<p>Localhook is solution to help developers to work with webhooks in development context.</p>
-<ul>
-<li>View the <a href="get-started.html">get started</a> guide.</li>
-</ul>
+<p>If you want to quick test this project, you can load &quot;fake data&quot; (fixtures):</p>
+<pre><code class="language-bash">php app/console hautelook:doctrine:fixtures:load -n</code></pre>
+<p>You can also send a fake notification as following:</p>
+<pre><code class="language-bash">php app/console app:server:simulate-notification webhook_1</code></pre>
+<p>Note : <code>webhook_1</code> is the name of a created webhook.</p>
                     </div>
 
                     <footer>

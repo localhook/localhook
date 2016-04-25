@@ -81,17 +81,35 @@
                         <div class="wy-nav-content">
                 <div class="rst-content">
                     <div role="main" class="document">
-                        <h1 id="localhook">Localhook</h1>
-<p>Webhooks is a common thing in API world. This feature is very useful.</p>
-<p>Therefore, it's not always easy to deal with it for developers:</p>
+                        <h1 id="server-installation-guide">Server installation guide</h1>
+<p>This project use Symfony Standard 2.8 LTS Version.
+For DB purpose, it uses SQLite. But thanks to Doctrine, you can use the database system you need (mySQL, postgreSQL, etc).</p>
 <ul>
-<li>Some API required you to use HTTPS only (and not &quot;self authenticated&quot;).</li>
-<li>The webhook listener has to be available on the web. Sometime <strong>it's not possible to give a web access to your local version</strong> of a project (entreprise proxy, etc).</li>
+<li>On a server environment, init the project :</li>
 </ul>
-<p>Localhook is solution to help developers to work with webhooks in development context.</p>
+<pre><code class="language-bash">git clone git@github.com:localhook/localhook-server.git
+composer install # Fill the asked values with your needs.</code></pre>
 <ul>
-<li>View the <a href="get-started.html">get started</a> guide.</li>
+<li>Init the database:</li>
 </ul>
+<pre><code class="language-bash">php app/console doctrine:database:create
+php app/console doctrine:schema:update --force</code></pre>
+<ul>
+<li>Install socket IO dependencies:</li>
+</ul>
+<pre><code class="language-bash">cd src/AppBundle/Resources/SocketIo &amp;&amp; npm install</code></pre>
+<h2 id="web-server-configuration">Web server configuration</h2>
+<p>Nginx example :</p>
+<pre><code class="language-nginx">server {
+    notitications.yourserver.com
+...
+}</code></pre>
+<h2 id="websockets-server-configuration">Websockets server configuration</h2>
+<pre><code class="language-bash">cd src/AppBundle/Resources/SocketIo &amp;&amp; npm install &amp;&amp; cd -
+php app/console app:server:run-socket-io</code></pre>
+<h2 id="verify">Verify</h2>
+<p>Visit <code>http://notitications.yourserver.com</code> url.</p>
+<p>The page is protected, use the login/password values you just set up in the above <code>composer install</code> step.</p>
                     </div>
 
                     <footer>
