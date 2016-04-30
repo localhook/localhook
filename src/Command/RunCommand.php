@@ -2,9 +2,9 @@
 
 namespace Localhook\Localhook\Command;
 
-use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
 use Localhook\Localhook\Ratchet\UserClient;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
@@ -136,12 +136,20 @@ class RunCommand extends AbstractCommand
         }
         (new Table($this->output))->setHeaders(['Request Header', 'Value'])->setRows($headers)->render();
 
-        // POST arguments
+        // POST forms arguments
         if (count($request['request'])) {
-            $this->io->comment('POST arguments');
+            $this->io->comment('POST form arguments');
             $vd->dump($request['request']);
         } else {
-            $this->io->comment('No POST argument.');
+            $this->io->comment('No POST form argument');
+        }
+
+        // POST body
+        if ($request['content'] && strlen($request['content'])) {
+            $this->io->comment('POST body');
+            $this->io->writeln($request['content']);
+        } else {
+            $this->io->comment('No POST body');
         }
     }
 
@@ -150,28 +158,9 @@ class RunCommand extends AbstractCommand
         $client = new Client();
         try {
             $this->io->comment('Waiting for response (timeout=' . $this->timeout . ')..');
-            switch ($request['method']) {
-                case 'GET':
-                    $response = $client->get($url, [
-                        'headers' => $request['headers'],
-                        'timeout' => $this->timeout,
-                    ]);
-                    break;
-                case 'POST':
-                    $response = $client->post($url, [
-                        'timeout'     => $this->timeout,
-                        'headers'     => $request['headers'],
-                        'form_params' => [
-                            $request['request'],
-                        ],
-                    ]);
-                    break;
-                default:
-                    throw new Exception(
-                        'Request method "' . $request['method'] . '" not managed in this version.' .
-                        'Please request the feature in Github.'
-                    );
-            }
+            $body = $request['content'] ? $request['content'] : null;
+            $guzzleRequest = new Request($request['method'], $url, $request['headers'], $body);
+            $response = $client->send($guzzleRequest, ['timeout' => $this->timeout]);
             $this->io->comment('LOCAL RESPONSE: ' . $response->getStatusCode());
         } catch (RequestException $e) {
             if ($e->hasResponse()) {
