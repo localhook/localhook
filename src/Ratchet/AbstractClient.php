@@ -34,8 +34,10 @@ class AbstractClient
             $this->conn = $conn;
             $this->parseMessages();
             $onConnect();
-        }, function ($e) {
-            throw new $e;
+        }, function (Exception $e) {
+            // FIXME no thrown exception because "Ratchet\Client\connect" catch everything.. erf...
+            echo 'Error when trying to connect to the socket "' . $this->url . "\": {$e->getMessage()}\n";
+            exit(1);
         });
     }
 
@@ -86,10 +88,11 @@ class AbstractClient
     protected function defaultExecute($type, array $msg, callable $onSuccess)
     {
         $comKey = rand(100000, 999999);
-        $this->conn->send(json_encode(array_merge([
+        $msg = json_encode(array_merge([
             'type'   => $type,
             'comKey' => $comKey,
-        ], $this->defaultFields, $msg)));
+        ], $this->defaultFields, $msg));
+        $this->conn->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
     }
 }

@@ -5,28 +5,66 @@ namespace Localhook\Localhook\Command;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
+use Localhook\Localhook\ConfigurationStorage;
+use Localhook\Localhook\Exceptions\NoConfigurationException;
 use Localhook\Localhook\Ratchet\UserClient;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\VarDumper\VarDumper;
 
-class RunCommand extends AbstractCommand
+class RunCommand extends Command
 
 {
     /** @var integer */
     private $timeout;
-
-    /** @var array */
-    private $webHookConfiguration;
 
     /** @var int */
     private $counter;
 
     /** @var int */
     private $max;
+
+    /** @var string */
+    private $configKey;
+
+    /** @var SymfonyStyle */
+    protected $io;
+
+    /** @var InputInterface */
+    protected $input;
+
+    /** @var OutputInterface */
+    protected $output;
+
+    /** @var ConfigurationStorage */
+    protected $configurationStorage;
+
+    /** @var UserClient */
+    protected $socketUserClient;
+
+    /** @var array */
+    private $webHookConfiguration;
+
+    /** @var string */
+    protected $webHookLocalUrl;
+
+    /** @var string */
+    protected $serverUrl;
+
+    /** @var boolean */
+    protected $noConfigFile;
+
+    /** @var string */
+    protected $endpoint;
+
+    /** @var string */
+    private $secret;
 
     protected function configure()
     {
@@ -35,9 +73,8 @@ class RunCommand extends AbstractCommand
         }
         $this
             ->addArgument('endpoint', InputArgument::OPTIONAL, 'The name of the endpoint')
-            ->addArgument('private-key', InputArgument::OPTIONAL, 'The private key of the endpoint')
             ->addArgument('local-url', InputArgument::OPTIONAL, 'The local URL to call when a request in received from the server')
-            ->addArgument('server-url', InputArgument::OPTIONAL, 'The server socket URL')
+            ->addOption('config-key', null, InputOption::VALUE_REQUIRED, 'The configuration key given on the website', null)
             ->addOption('max', null, InputOption::VALUE_OPTIONAL, 'The maximum number of notification before stop watcher', null)
             ->addOption('no-config-file', null, InputOption::VALUE_NONE, 'If you don\'t want to save the current configuration.', null)
             ->setDescription('Watch for a notification and output it in JSON format');
@@ -50,76 +87,130 @@ class RunCommand extends AbstractCommand
         $this->counter = 0;
         $this->timeout = 15;
         $this->endpoint = $input->getArgument('endpoint');
-        $this->webHookPrivateKey = $input->getArgument('private-key');
         $this->webHookLocalUrl = $input->getArgument('local-url');
-        $this->serverUrl = $input->getArgument('server-url');
+        $this->configKey = $input->getOption('config-key');
         $this->noConfigFile = $input->getOption('no-config-file');
 
-        parent::execute($input, $output);
+        $this->configurationStorage = new ConfigurationStorage($this->noConfigFile);
+        $this->io = new SymfonyStyle($input, $output);
+        $this->input = new $input;
+        $this->output = new $output;
+        $this->loadConfiguration();
 
         $this->socketUserClient = new UserClient($this->serverUrl);
         $this->io->comment('Connecting to ' . $this->socketUserClient->getUrl() . ' ...');
         $this->socketUserClient->start(function () {
-            $this->detectWebHookConfiguration($this->endpoint, function ($webHookConfiguration) {
-                $this->webHookConfiguration = $webHookConfiguration;
-                $this->socketUserClient->executeSubscribeWebHook(function ($msg) {
-                    $this->io->success('Successfully subscribed to ' . $this->endpoint);
-                    $this->output->writeln('Watch for notification to endpoint ' . $this->endpoint . ' ...');
-                }, function ($request) {
-                    $url = $this->webHookConfiguration['localUrl'];
-                    if (count($request['query'])) {
-                        $url .= '?' . http_build_query($request['query']);
+            $this->syncConfiguration(function () {
+                $this->detectWebHookConfiguration($this->endpoint, function () {
+                    $this->socketUserClient->executeSubscribeWebHook(function () {
+                        $this->io->success('Successfully subscribed to ' . $this->endpoint);
+                        $this->output->writeln('Watch for notification to endpoint ' . $this->endpoint . ' ...');
+                    }, function ($request) {
+                        $url = $this->webHookConfiguration['local_url'];
+                        if (count($request['query'])) {
+                            $url .= '?' . http_build_query($request['query']);
+                        }
+                        $this->displayRequest($request, $url);
+                        $this->sendRequest($request, $url);
+                    }, function () {
+                        $this->socketUserClient->stop();
+                        $this->io->warning('Max forward reached (' . $this->max . ')');
+                        exit(0);
+                    }, $this->secret, $this->endpoint, $this->max);
+                });
+            }, function ($msg) {
+                $configuration = $this->configurationStorage->get();
+                $configuration['web_hooks'] = array_merge(
+                    $configuration['web_hooks'], [['endpoint' => $msg['endpoint']]]
+                );
+                $this->configurationStorage->replaceConfiguration($configuration)->save();
+                $this->io->comment('New WebHook added: ' . $msg['endpoint'] . '. Restart this command to use it.');
+            }, function ($msg) {
+                $endpoint = $msg['endpoint'];
+                $configuration = $this->configurationStorage->get();
+                $keyToRemove = null;
+                foreach ($configuration['web_hooks'] as $key => $item) {
+                    if ($item['endpoint'] == $endpoint) {
+                        $keyToRemove = $key;
                     }
-                    $this->displayRequest($request, $url);
-                    $this->sendRequest($request, $url);
-                }, function () {
-                    $this->socketUserClient->stop();
-                    $this->io->warning('Max forward reached (' . $this->max . ')');
-                    exit(0);
-                }, $this->webHookPrivateKey, $this->max);
+                }
+                if ($keyToRemove) {
+                    unset($configuration[$keyToRemove]);
+                    $this->configurationStorage->replaceConfiguration($configuration)->save();
+                    $this->io->comment('WebHook removed: ' . $msg['endpoint']);
+                    if ($this->endpoint == $msg['endpoint']) {
+                        exit(1);
+                    }
+                }
             });
         });
+    }
 
-//        try {
-//            $this->socketIoClientConnector->subscribeChannel($endpoint, $privateKey);
-//        } catch (Exception $e) {// Todo use specific exception
-//            $configuration = $this->configurationStorage->get();
-//            unset($configuration['webhooks'][$endpoint]);
-//            $this->configurationStorage->replaceConfiguration($configuration)->save();
-//            throw new Exception(
-//                'Channel has been deleted by remote. ' .
-//                'Associated webhook configuration has been removed from your local configuration file.'
-//            );
-//        }
-//
-//        while (true) {
-//            // apply max limitation
-//            if (!is_null($max) && $counter >= $max) {
-//                break;
-//            }
-//            $counter++;
-//
-//            try {
-//                $notification = $this->socketIoClientConnector->waitForNotification();
-//            } catch (DeletedChannelException $e) {
-//                $configuration = $this->configurationStorage->get();
-//                unset($configuration['webhooks'][$endpoint]);
-//                $this->configurationStorage->replaceConfiguration($configuration)->save();
-//                throw new Exception(
-//                    'Channel has been deleted by remote. ' .
-//                    'Associated webhook configuration has been removed from your local configuration file.'
-//                );
-//            }
-//
-//            $url = $webHookConfiguration['localUrl'];
-//            if (count($notification['query'])) {
-//                $url .= '?' . http_build_query($notification['query']);
-//            }
-//
-//            $this->displayNotification($notification, $url);
-//            $this->sendNotification($notification, $url);
-//        }
-//        $this->socketIoClientConnector->closeConnection();
+    protected function loadConfiguration()
+    {
+        try {
+            $configuration = $this->configurationStorage->loadFromFile()->get();
+            $this->serverUrl = $configuration['socket_url'];
+            $this->secret = $configuration['secret'];
+        } catch (NoConfigurationException $e) {
+
+            $this->io->comment($e->getMessage());
+
+            if (!$this->configKey) {
+                $this->configKey = $this->io->ask(
+                    'Secret',
+                    'WyJ3czpcL1wvMTI3LjAuMC4xOjEzMzciLCIyOTNkOWMxNTAwMDkxZjI3MGYzYzVlZGY1Yjc0OTE2OTU5MjAzNzk4Il0='
+                );
+            }
+            $configuration = $this->parseConfigurationKey();
+            $this->serverUrl = $configuration['socket_url'];
+            $this->secret = $configuration['secret'];
+
+            $this->configurationStorage->merge($configuration)->save();
+        }
+    }
+
+    protected function detectWebHookConfiguration($endpoint, callable $onSuccess)
+    {
+        $configuration = $this->configurationStorage->get();
+        if (!$endpoint) {
+            $webHooks = $configuration['web_hooks'];
+            $nbConfigs = count($webHooks);
+            if ($nbConfigs) {
+                if ($nbConfigs > 1) {
+                    $question = new ChoiceQuestion('Select a configured WebHook', array_keys($webHooks));
+                    $endpoint = $webHooks[$this->io->askQuestion($question)]['endpoint'];
+                } else {
+                    $endpoint = $webHooks[0]['endpoint'];
+                }
+                $this->endpoint = $endpoint;
+            } else {
+                $this->noWebHookAction();
+            }
+        } else {
+            $this->endpoint = $endpoint;
+        }
+        $webHookConfiguration = $this->getWebHookConfigurationBy('endpoint', $this->endpoint);
+        if (!$webHookConfiguration) {
+            $this->noWebHookAction();
+        } else {
+            $this->webHookConfiguration = $webHookConfiguration;
+            $this->initLocalUrl();
+            $onSuccess();
+        }
+    }
+
+    private function getWebHookConfigurationBy($key, $value)
+    {
+        $configuration = $this->configurationStorage->get();
+
+        foreach ($configuration['web_hooks'] as $webHook) {
+            if ($webHook[$key] == $value) {
+                return $webHook;
+            }
+        }
+
+        return null;
     }
 
     private function displayRequest($request, $localUrl)
@@ -167,5 +258,58 @@ class RunCommand extends AbstractCommand
                 $this->io->warning('LOCAL RESPONSE: ' . $e->getResponse()->getStatusCode());
             }
         }
+    }
+
+    private function parseConfigurationKey()
+    {
+        $data = json_decode(base64_decode($this->configKey, true), true);
+
+        return ['socket_url' => $data[0], 'secret' => $data[1]];
+    }
+
+    private function syncConfiguration(callable $onSuccess, callable $onAddWebHook, callable $onRemoveWebHook)
+    {
+        $this->socketUserClient->executeRetrieveConfigurationFromSecret($this->secret,
+            function ($configuration) use ($onSuccess) {
+                unset($configuration['comKey']);
+                unset($configuration['status']);
+                $this->configurationStorage->replaceConfiguration($configuration)->save();
+                $onSuccess();
+            }, $onAddWebHook, $onRemoveWebHook);
+    }
+
+    private function initLocalUrl()
+    {
+        if (!isset($this->webHookConfiguration['local_url'])) {
+            if (!$this->webHookLocalUrl) {
+                $this->webHookLocalUrl = $this->io->ask(
+                    'Local URL to call when notification received',
+                    'http://localhost/my-project/notifications'
+                );
+                $this->webHookConfiguration['local_url'] = $this->webHookLocalUrl;
+
+                // Store the local URL
+                $configuration = $this->configurationStorage->get();
+                $configurationKey = null;
+                foreach ($configuration['web_hooks'] as $key => $item) {
+                    if ($item['endpoint'] == $this->endpoint) {
+                        $configurationKey = $key;
+                    }
+                }
+                $configuration['web_hooks'][$configurationKey]['local_url'] = $this->webHookLocalUrl;
+                $this->configurationStorage->replaceConfiguration($configuration)->save();
+            }
+        } else {
+            $this->io->comment('Local URL: ' . $this->webHookLocalUrl);
+        }
+    }
+
+    private function noWebHookAction()
+    {
+        $this->io->warning(
+            'No WebHook configured. Visit ' . $this->configurationStorage->get()['web_url'] .
+            '/webhook/new to configure a new WebHook configuration.'
+        );
+        exit(1);
     }
 }
