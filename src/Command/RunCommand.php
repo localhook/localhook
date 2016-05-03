@@ -360,7 +360,7 @@ class RunCommand extends Command
         }
 
         $configuration = $this->configurationStorage->get();
-        $configuration['web_hooks'] = $localWebHooksConfiguration;
+        $configuration['web_hooks'] = array_values($localWebHooksConfiguration);
 
         $this->configurationStorage->replaceConfiguration($configuration)->save();
     }

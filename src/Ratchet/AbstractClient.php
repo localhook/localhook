@@ -13,7 +13,7 @@ class AbstractClient
     protected $conn;
 
     /** @var SymfonyStyle */
-    protected $io;
+    private $io;
 
     /** @var callable[] */
     protected $callbacks = [];
@@ -41,7 +41,7 @@ class AbstractClient
     {
         \Ratchet\Client\connect($this->url)->then(function ($conn) use ($onConnect) {
             $this->conn = $conn;
-            $this->parseMessages();
+            $this->parseMessages($conn);
             $onConnect();
         }, function (Exception $e) {
             // FIXME no thrown exception because "Ratchet\Client\connect" catch everything.. erf...
@@ -50,12 +50,10 @@ class AbstractClient
         });
     }
 
-    public function parseMessages()
+    public function parseMessages($conn)
     {
-        $this->conn->on('message', function ($msg) {
-            if ($this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
-                $this->io->comment('MESSAGE RECEIVED: ' . $msg);
-            }
+        $this->conn->on('message', function ($msg) use ($conn) {
+            $this->verboseLog("<info>MESSAGE RECEIVED: {$msg}</info>");
             $msg = json_decode($msg, true);
             $type = $msg['type'];
             unset($msg['type']);
@@ -91,7 +89,16 @@ class AbstractClient
     protected function defaultReceive($msg, $comKey)
     {
         if ($msg['status'] == 'ok') {
-            $this->callbacks[$comKey]($msg);
+            if (isset($this->callbacks[$comKey])) {
+                $this->callbacks[$comKey]($msg);
+            } else {
+                // Fixme check that it works because ratchet seems to catch all exceptions
+                throw new Exception(
+                    'No callback function found for received response: ' .
+                    json_encode($msg) . ' Registered callbacks comKeys was: ' .
+                    implode(', ', array_keys($this->callbacks))
+                );
+            }
         } else {
             if (isset($this->errorCallbacks[$comKey])) {
                 $this->errorCallbacks[$comKey]($msg);
@@ -109,13 +116,21 @@ class AbstractClient
             'type'   => $type,
             'comKey' => $comKey,
         ], $this->defaultFields, $msg));
-        if ($this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
-            $this->io->comment('MESSAGE SENT: ' . $msg);
-        }
+        $this->verboseLog("<comment>MESSAGE SENT: {$msg}</comment>");
         $this->conn->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
         if ($onError) {
             $this->errorCallbacks[$comKey] = $onError;
+        }
+    }
+
+    /**
+     * @param string $msg
+     */
+    protected function verboseLog($msg)
+    {
+        if ($this->io && $this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
+            $this->io->comment($msg);
         }
     }
 }
