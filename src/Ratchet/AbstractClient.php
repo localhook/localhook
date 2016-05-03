@@ -17,6 +17,9 @@ class AbstractClient
     /** @var callable[] */
     protected $callbacks = [];
 
+    /** @var callable[] */
+    protected $errorCallbacks = [];
+
     /** @var string */
     private $url;
 
@@ -81,11 +84,16 @@ class AbstractClient
         if ($msg['status'] == 'ok') {
             $this->callbacks[$comKey]($msg);
         } else {
-            throw new Exception('Error received: ' . json_encode($msg));
+            if (isset($this->errorCallbacks[$comKey])) {
+                $this->errorCallbacks[$comKey]($msg);
+            } else {
+                // Fixme check that it works because ratchet seems to catch all exceptions
+                throw new Exception('Error received: ' . json_encode($msg));
+            }
         }
     }
 
-    protected function defaultExecute($type, array $msg, callable $onSuccess)
+    protected function defaultExecute($type, array $msg, callable $onSuccess, callable $onError = null)
     {
         $comKey = rand(100000, 999999);
         $msg = json_encode(array_merge([
@@ -94,5 +102,8 @@ class AbstractClient
         ], $this->defaultFields, $msg));
         $this->conn->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
+        if ($onError) {
+            $this->errorCallbacks[$comKey] = $onError;
+        }
     }
 }

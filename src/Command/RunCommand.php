@@ -134,12 +134,14 @@ class RunCommand extends Command
                         $keyToRemove = $key;
                     }
                 }
-                if ($keyToRemove) {
+                if (!is_null($keyToRemove)) {
                     unset($configuration[$keyToRemove]);
                     $this->configurationStorage->replaceConfiguration($configuration)->save();
-                    $this->io->comment('WebHook removed: ' . $msg['endpoint']);
                     if ($this->endpoint == $msg['endpoint']) {
+                        $this->io->warning('WebHook removed: ' . $msg['endpoint']);
                         exit(1);
+                    } else {
+                        $this->io->note('WebHook removed: ' . $msg['endpoint']);
                     }
                 }
             });
@@ -150,8 +152,6 @@ class RunCommand extends Command
     {
         try {
             $configuration = $this->configurationStorage->loadFromFile()->get();
-            $this->serverUrl = $configuration['socket_url'];
-            $this->secret = $configuration['secret'];
         } catch (NoConfigurationException $e) {
 
             $this->io->comment($e->getMessage());
@@ -163,11 +163,10 @@ class RunCommand extends Command
                 );
             }
             $configuration = $this->parseConfigurationKey();
-            $this->serverUrl = $configuration['socket_url'];
-            $this->secret = $configuration['secret'];
-
-            $this->configurationStorage->merge($configuration)->save();
         }
+        $this->serverUrl = $configuration['socket_url'];
+        $this->secret = $configuration['secret'];
+        $this->configurationStorage->merge($configuration)->save();
     }
 
     protected function detectWebHookConfiguration($endpoint, callable $onSuccess)
@@ -178,8 +177,13 @@ class RunCommand extends Command
             $nbConfigs = count($webHooks);
             if ($nbConfigs) {
                 if ($nbConfigs > 1) {
-                    $question = new ChoiceQuestion('Select a configured WebHook', array_keys($webHooks));
-                    $endpoint = $webHooks[$this->io->askQuestion($question)]['endpoint'];
+                    $webHookEndpoints = [];
+                    foreach ($webHooks as $webHook) {
+                        $webHookEndpoints[] = $webHook['endpoint'];
+                    }
+
+                    $question = new ChoiceQuestion('Select a configured WebHook', $webHookEndpoints);
+                    $endpoint = $this->io->askQuestion($question);
                 } else {
                     $endpoint = $webHooks[0]['endpoint'];
                 }
@@ -190,7 +194,7 @@ class RunCommand extends Command
         } else {
             $this->endpoint = $endpoint;
         }
-        $webHookConfiguration = $this->getWebHookConfigurationBy('endpoint', $this->endpoint);
+        $webHookConfiguration = $this->getLocalWebHookConfigurationBy('endpoint', $this->endpoint);
         if (!$webHookConfiguration) {
             $this->noWebHookAction();
         } else {
@@ -200,7 +204,7 @@ class RunCommand extends Command
         }
     }
 
-    private function getWebHookConfigurationBy($key, $value)
+    private function getLocalWebHookConfigurationBy($key, $value)
     {
         $configuration = $this->configurationStorage->get();
 
@@ -264,7 +268,7 @@ class RunCommand extends Command
     {
         $data = json_decode(base64_decode($this->configKey, true), true);
 
-        return ['socket_url' => $data[0], 'secret' => $data[1]];
+        return ['socket_url' => $data[0], 'secret' => $data[1], 'web_hooks' => []];
     }
 
     private function syncConfiguration(callable $onSuccess, callable $onAddWebHook, callable $onRemoveWebHook)
@@ -273,7 +277,8 @@ class RunCommand extends Command
             function ($configuration) use ($onSuccess) {
                 unset($configuration['comKey']);
                 unset($configuration['status']);
-                $this->configurationStorage->replaceConfiguration($configuration)->save();
+                $this->updateLocalConfiguration($configuration);
+                $this->io->note('To administrate your Webhooks, visit the following URL: ' . $configuration['web_url']);
                 $onSuccess();
             }, $onAddWebHook, $onRemoveWebHook);
     }
@@ -283,7 +288,7 @@ class RunCommand extends Command
         if (!isset($this->webHookConfiguration['local_url'])) {
             if (!$this->webHookLocalUrl) {
                 $this->webHookLocalUrl = $this->io->ask(
-                    'Local URL to call when notification received',
+                    'Local URL to call when notification received from endpoint "' . $this->endpoint . '"',
                     'http://localhost/my-project/notifications'
                 );
                 $this->webHookConfiguration['local_url'] = $this->webHookLocalUrl;
@@ -311,5 +316,51 @@ class RunCommand extends Command
             '/webhook/new to configure a new WebHook configuration.'
         );
         exit(1);
+    }
+
+    private function updateLocalConfiguration($remoteConfiguration)
+    {
+        $localWebHooksConfiguration = $this->configurationStorage->get()['web_hooks'];
+        $remoteWebHooksConfiguration = $remoteConfiguration['web_hooks'];
+
+        // remove old
+        $localKeysToRemove = [];
+        foreach ($localWebHooksConfiguration as $localKey => $localWebHook) {
+            $found = false;
+            foreach ($remoteWebHooksConfiguration as $remoteWebHook) {
+                if ($localWebHook['endpoint'] == $remoteWebHook['endpoint']) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $localKeysToRemove[] = $localKey;
+            }
+        }
+        $removedEndpoints = [];
+        foreach ($localKeysToRemove as $localKeyToRemove) {
+            $removedEndpoints[] = $localWebHooksConfiguration[$localKeyToRemove]['endpoint'];
+            unset($localWebHooksConfiguration[$localKeyToRemove]);
+        }
+        if (count($removedEndpoints)) {
+            $this->io->comment('Endpoint(s) "' . implode(', ', $removedEndpoints) . '" removed from local configuration as it/they does not exists anymore on the server.');
+        }
+
+        // add new
+        $addedEndpoints = [];
+        foreach ($remoteWebHooksConfiguration as $key => $remoteWebHook) {
+            if (!$this->getLocalWebHookConfigurationBy('endpoint', $remoteWebHook['endpoint'])) {
+                $localWebHooksConfiguration[] = $remoteWebHook;
+                $addedEndpoints[] = $remoteWebHook['endpoint'];
+            }
+        }
+        if (count($addedEndpoints)) {
+            $this->io->comment('Endpoint(s) ' . implode(', ', $addedEndpoints) . ' added to the local configuration as it/they has been configured on the server.');
+        }
+
+        $configuration = $this->configurationStorage->get();
+        $configuration['web_hooks'] = $localWebHooksConfiguration;
+
+        $this->configurationStorage->replaceConfiguration($configuration)->save();
     }
 }
