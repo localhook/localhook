@@ -103,11 +103,11 @@ class RunCommand extends Command
         $this->socketUserClient->start(function () {
             $this->syncConfiguration(function () {
                 $this->detectWebHookConfiguration($this->endpoint, function () {
-                    $this->socketUserClient->executeSubscribeWebHook(function () {
-                        $this->io->success('Successfully subscribed to ' . $this->endpoint);
+                    $url = $this->webHookConfiguration['local_url'];
+                    $this->socketUserClient->executeSubscribeWebHook(function () use ($url) {
+                        $this->io->success('Successfully subscribed to ' . $this->endpoint . '. Local URL: ' . $url);
                         $this->output->writeln('Watch for notification to endpoint ' . $this->endpoint . ' ...');
-                    }, function ($request) {
-                        $url = $this->webHookConfiguration['local_url'];
+                    }, function ($request) use ($url) {
                         if (count($request['query'])) {
                             $url .= '?' . http_build_query($request['query']);
                         }
@@ -139,10 +139,10 @@ class RunCommand extends Command
                     unset($configuration[$keyToRemove]);
                     $this->configurationStorage->replaceConfiguration($configuration)->save();
                     if ($this->endpoint == $msg['endpoint']) {
-                        $this->io->warning('WebHook removed: ' . $msg['endpoint']);
+                        $this->io->warning('WebHook removed on remote: ' . $msg['endpoint']);
                         exit(1);
                     } else {
-                        $this->io->note('WebHook removed: ' . $msg['endpoint']);
+                        $this->io->note('WebHook removed on remote: ' . $msg['endpoint']);
                     }
                 }
             });
@@ -232,18 +232,16 @@ class RunCommand extends Command
         }
         (new Table($this->output))->setHeaders(['Request Header', 'Value'])->setRows($headers)->render();
 
-        // POST forms arguments
-        if (count($request['request'])) {
-            $this->io->comment('POST form arguments');
-            $vd->dump($request['request']);
-        } else {
-            $this->io->comment('No POST form argument');
-        }
-
         // POST body
-        if ($request['content'] && strlen($request['content'])) {
-            $this->io->comment('POST body');
-            $this->io->writeln($request['content']);
+        if ($request['body'] && strlen($request['body'])) {
+            parse_str($request['body'], $params);
+            if ($params && count($params) && array_values($params)[0]) {
+                $this->io->comment('POST parameters');
+                $vd->dump($params);
+            } else {
+                $this->io->comment('POST body');
+                $this->io->writeln($request['body']);
+            }
         } else {
             $this->io->comment('No POST body');
         }
@@ -254,7 +252,7 @@ class RunCommand extends Command
         $client = new Client();
         try {
             $this->io->comment('Waiting for response (timeout=' . $this->timeout . ')..');
-            $body = $request['content'] ? $request['content'] : null;
+            $body = $request['body'] ? $request['body'] : null;
             $guzzleRequest = new Request($request['method'], $url, $request['headers'], $body);
             $response = $client->send($guzzleRequest, ['timeout' => $this->timeout]);
             $this->io->comment('LOCAL RESPONSE: ' . $response->getStatusCode());
