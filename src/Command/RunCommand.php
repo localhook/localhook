@@ -98,6 +98,7 @@ class RunCommand extends Command
         $this->loadConfiguration();
 
         $this->socketUserClient = new UserClient($this->serverUrl);
+        $this->socketUserClient->setIo($this->io);
         $this->io->comment('Connecting to ' . $this->socketUserClient->getUrl() . ' ...');
         $this->socketUserClient->start(function () {
             $this->syncConfiguration(function () {

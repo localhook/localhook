@@ -4,6 +4,7 @@ namespace Localhook\Localhook\Ratchet;
 
 use Exception;
 use Ratchet\Client\WebSocket;
+use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class AbstractClient
@@ -31,6 +32,11 @@ class AbstractClient
         $this->url = $url;
     }
 
+    public function setIo($io)
+    {
+        $this->io = $io;
+    }
+
     public function start(callable $onConnect)
     {
         \Ratchet\Client\connect($this->url)->then(function ($conn) use ($onConnect) {
@@ -47,6 +53,9 @@ class AbstractClient
     public function parseMessages()
     {
         $this->conn->on('message', function ($msg) {
+            if ($this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
+                $this->io->comment('MESSAGE RECEIVED: ' . $msg);
+            }
             $msg = json_decode($msg, true);
             $type = $msg['type'];
             unset($msg['type']);
@@ -100,6 +109,9 @@ class AbstractClient
             'type'   => $type,
             'comKey' => $comKey,
         ], $this->defaultFields, $msg));
+        if ($this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
+            $this->io->comment('MESSAGE SENT: ' . $msg);
+        }
         $this->conn->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
         if ($onError) {
