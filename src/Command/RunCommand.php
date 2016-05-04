@@ -357,9 +357,8 @@ class RunCommand extends Command
             $this->io->comment('Endpoint(s) ' . implode(', ', $addedEndpoints) . ' added to the local configuration as it/they has been configured on the server.');
         }
 
-        $configuration = $this->configurationStorage->get();
-        $configuration['web_hooks'] = array_values($localWebHooksConfiguration);
+        $remoteConfiguration['web_hooks'] = array_values($localWebHooksConfiguration);
 
-        $this->configurationStorage->replaceConfiguration($configuration)->save();
+        $this->configurationStorage->replaceConfiguration($remoteConfiguration)->save();
     }
 }
