@@ -25,9 +25,6 @@ class RunCommand extends Command
     private $timeout;
 
     /** @var int */
-    private $counter;
-
-    /** @var int */
     private $max;
 
     /** @var string */
@@ -84,7 +81,6 @@ class RunCommand extends Command
     {
         // Retrieve configuration (and store it if necessary)
         $this->max = $input->getOption('max');
-        $this->counter = 0;
         $this->timeout = 15;
         $this->endpoint = $input->getArgument('endpoint');
         $this->webHookLocalUrl = $input->getArgument('local-url');
