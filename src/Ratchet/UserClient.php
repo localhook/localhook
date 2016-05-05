@@ -52,6 +52,19 @@ class UserClient extends AbstractClient implements ClientInterface
         }
     }
 
+    private function receiveForwardRequest($msg, $comKey)
+    {
+        $requestData = $msg['request'];
+        $forwardRequestCallback = $this->forwardRequestCallback;
+        $forwardRequestCallback($requestData, $comKey);
+        $this->counter++;
+
+        if (!is_null($this->max) && $this->counter >= $this->max) {
+            $maxReachedCallback = $this->maxReachedCallback;
+            $maxReachedCallback($comKey);
+        }
+    }
+
     public function executeRetrieveConfigurationFromSecret(
         $secret,
         callable $onSuccess,
@@ -78,21 +91,8 @@ class UserClient extends AbstractClient implements ClientInterface
         $this->max = $max;
         $this->counter = 0;
         $this->defaultExecute('subscribeWebHook', [
-            'secret' => $secret,
+            'secret'   => $secret,
             'endpoint' => $endpoint,
         ], $onSuccess);
-    }
-
-    private function receiveForwardRequest($msg, $comKey)
-    {
-        $requestData = $msg['request'];
-        $forwardRequestCallback = $this->forwardRequestCallback;
-        $forwardRequestCallback($requestData, $comKey);
-        $this->counter++;
-
-        if (!is_null($this->max) && $this->counter >= $this->max) {
-            $maxReachedCallback = $this->maxReachedCallback;
-            $maxReachedCallback($comKey);
-        }
     }
 }

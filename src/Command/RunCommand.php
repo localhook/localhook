@@ -118,7 +118,6 @@ class RunCommand extends Command
                         }, function () {
                             $this->socketUserClient->stop();
                             $this->io->warning('Max forward reached (' . $this->max . ')');
-                            exit(0);
                         }, $this->secret, $this->endpoint, $this->max);
                     });
                 }, function ($msg) {
@@ -142,7 +141,7 @@ class RunCommand extends Command
                         $this->configurationStorage->replaceConfiguration($configuration)->save();
                         if ($this->endpoint == $msg['endpoint']) {
                             $this->io->warning('WebHook removed on remote: ' . $msg['endpoint']);
-                            exit(1);
+                            $this->socketUserClient->stop();
                         } else {
                             $this->io->note('WebHook removed on remote: ' . $msg['endpoint']);
                         }
@@ -151,7 +150,7 @@ class RunCommand extends Command
             });
         } catch (\Exception $e) {
             $this->io->error($e->getMessage());
-            exit(1);
+            $this->socketUserClient->stop();
         }
     }
 
@@ -321,7 +320,7 @@ class RunCommand extends Command
             'No WebHook configured. Visit ' . $this->configurationStorage->get()['web_url'] .
             '/webhook/new to configure a new WebHook configuration.'
         );
-        exit(1);
+        $this->socketUserClient->stop();
     }
 
     private function updateLocalConfiguration($remoteConfiguration)

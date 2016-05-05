@@ -46,7 +46,7 @@ class AbstractClient
         }, function (Exception $e) {
             // FIXME no thrown exception because "Ratchet\Client\connect" catch everything.. erf...
             echo 'Error when trying to connect to the socket "' . $this->url . "\": {$e->getMessage()}\n";
-            exit(1);
+            $this->stop();
         });
     }
 
@@ -103,8 +103,8 @@ class AbstractClient
             if (isset($this->errorCallbacks[$comKey])) {
                 $this->errorCallbacks[$comKey]($msg);
             } else {
-                $this->io->error('The server said: "' . $msg['message'].'".');
-                exit(1);
+                $this->io->error('The server said: "' . $msg['message'] . '".');
+                $this->stop();
             }
         }
     }
