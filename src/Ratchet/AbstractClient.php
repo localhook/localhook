@@ -41,18 +41,17 @@ class AbstractClient
     {
         \Ratchet\Client\connect($this->url)->then(function ($conn) use ($onConnect) {
             $this->conn = $conn;
-            $this->parseMessages($conn);
+            $this->parseMessages();
             $onConnect();
         }, function (Exception $e) {
-            // FIXME no thrown exception because "Ratchet\Client\connect" catch everything.. erf...
-            echo 'Error when trying to connect to the socket "' . $this->url . "\": {$e->getMessage()}\n";
+            $this->io->error('Error when trying to connect to the socket "' . $this->url . "\": {$e->getMessage()}\n");
             $this->stop();
         });
     }
 
-    public function parseMessages($conn)
+    public function parseMessages()
     {
-        $this->conn->on('message', function ($msg) use ($conn) {
+        $this->conn->on('message', function ($msg) {
             $this->verboseLog("MESSAGE RECEIVED: {$msg}", 'info');
             $msg = json_decode($msg, true);
             $type = $msg['type'];
@@ -92,7 +91,6 @@ class AbstractClient
             if (isset($this->callbacks[$comKey])) {
                 $this->callbacks[$comKey]($msg);
             } else {
-                // Fixme check that it works because ratchet seems to catch all exceptions
                 throw new Exception(
                     'No callback function found for received response: ' .
                     json_encode($msg) . ' Registered callbacks comKeys was: ' .
