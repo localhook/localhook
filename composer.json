@@ -1,5 +1,6 @@
 {
   "name": "localhook/localhook",
+  "description": "The Localhook client",
   "license": "MIT",
   "bin": [
     "localhook"
