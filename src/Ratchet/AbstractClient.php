@@ -53,7 +53,7 @@ class AbstractClient
     public function parseMessages($conn)
     {
         $this->conn->on('message', function ($msg) use ($conn) {
-            $this->verboseLog("<info>MESSAGE RECEIVED: {$msg}</info>");
+            $this->verboseLog("MESSAGE RECEIVED: {$msg}", 'info');
             $msg = json_decode($msg, true);
             $type = $msg['type'];
             unset($msg['type']);
@@ -103,8 +103,8 @@ class AbstractClient
             if (isset($this->errorCallbacks[$comKey])) {
                 $this->errorCallbacks[$comKey]($msg);
             } else {
-                // Fixme check that it works because ratchet seems to catch all exceptions
-                throw new Exception('Error received: ' . json_encode($msg));
+                $this->io->error('The server said: "' . $msg['message'].'".');
+                exit(1);
             }
         }
     }
@@ -116,7 +116,7 @@ class AbstractClient
             'type'   => $type,
             'comKey' => $comKey,
         ], $this->defaultFields, $msg));
-        $this->verboseLog("<comment>MESSAGE SENT: {$msg}</comment>");
+        $this->verboseLog("MESSAGE SENT: {$msg}", 'comment');
         $this->conn->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
         if ($onError) {
@@ -126,11 +126,42 @@ class AbstractClient
 
     /**
      * @param string $msg
+     * @param        $color
      */
-    protected function verboseLog($msg)
+    protected function verboseLog($msg, $color)
     {
         if ($this->io && $this->io->getVerbosity() === OutputInterface::VERBOSITY_DEBUG) {
-            $this->io->comment($msg);
+            $this->io->comment('<' . $color . '>' . date('[Y-m-d H:i:s]') . $msg . '</' . $color . '>');
+        }
+    }
+
+    /**
+     * @param string $msg
+     */
+    protected function text($msg)
+    {
+        if ($this->io) {
+            $this->io->writeln(date('[Y-m-d H:i:s]') . $msg);
+        }
+    }
+
+    /**
+     * @param string $msg
+     */
+    protected function error($msg)
+    {
+        if ($this->io) {
+            $this->io->error(date('[Y-m-d H:i:s]') . $msg);
+        }
+    }
+
+    /**
+     * @param string $msg
+     */
+    protected function warning($msg)
+    {
+        if ($this->io) {
+            $this->io->warning(date('[Y-m-d H:i:s]') . $msg);
         }
     }
 }
