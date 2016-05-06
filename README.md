@@ -7,4 +7,6 @@ Localhook
 
 View the [online documentation](https://localhook.github.io/localhook).
 
+Visit the [online plateform](https://localhook.umansoft.com).
+
 This project is released under the MIT license.
