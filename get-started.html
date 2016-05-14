@@ -82,14 +82,20 @@
                 <div class="rst-content">
                     <div role="main" class="document">
                         <h1 id="quick-start-installation">Quick start installation</h1>
-<ul>
-<li><a href="client-install.html">Install the client</a> documentation.</li>
-</ul>
-<p>If you want to quick test this project, you can load &quot;fake data&quot; (fixtures):</p>
-<pre><code class="language-bash">php app/console hautelook:doctrine:fixtures:load -n</code></pre>
-<p>You can also send a fake notification as following:</p>
-<pre><code class="language-bash">php app/console app:server:simulate-notification webhook_1</code></pre>
-<p>Note : <code>webhook_1</code> is the name of a created webhook.</p>
+<h3 id="1-get-a-free-account-in-a-second">1) Get a free account in a second</h3>
+<p>It's just to give you a private acces to your data.</p>
+<p><a href="https://localhook.umansoft.com/register/">localhook.umansoft.com/register</a></p>
+<p>No payment required, no data catched, no premium version.</p>
+<h3 id="2-create-a-endpoint">2) Create a endpoint</h3>
+<p><a href="https://localhook.umansoft.com/webhook/new">localhook.umansoft.com/webhook/new</a></p>
+<h3 id="3-install-the-localhook-client-on-you-computer">3) Install the localhook client on you computer</h3>
+<pre><code class="language-bash">curl -OSL https https://git.io/vwu9e -o localhook.phar &amp;&amp; chmod +x localhook.phar &amp;&amp; sudo mv localhook.phar /usr/local/bin/localhook</code></pre>
+<h3 id="4-start-using-localhook">4) Start using localhook</h3>
+<pre><code>localhook run</code></pre>
+<p>At first launch, localhook client needs a secret to be autoconfigured.</p>
+<p>Your secret is available here: <a href="https://localhook.umansoft.com/get-started">localhook.umansoft.com/get-started</a></p>
+<p>Copy it in your clipboard, fill prompt with the secret you just copied.</p>
+<p>Now enjoy localhook usage! :-)</p>
                     </div>
 
                     <footer>

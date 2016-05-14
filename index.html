@@ -89,9 +89,44 @@
 <li>The webhook listener has to be available on the web. Sometime <strong>it's not possible to give a web access to your local version</strong> of a project (entreprise proxy, etc).</li>
 </ul>
 <p>Localhook is solution to help developers to work with webhooks in development context.</p>
+<h2 id="get-started-2-minutes-to-make-it-works-perfectly">Get started (2 minutes to make it works perfectly!)</h2>
 <ul>
 <li>View the <a href="get-started.html">get started</a> guide.</li>
 </ul>
+<h2 id="how-does-this-project-work">How does this project work?</h2>
+<p>Here's a use case to understand the goal of this project.</p>
+<h3 id="the-context">The context</h3>
+<p>Bob wants to develop a project using Google Drive API and they cool feature of Webhook, that's make him easy to informed its project when a new file arrive in a specific Drive folder.</p>
+<h3 id="the-problem">The problem</h3>
+<p>To develop this project, the Google Drive API has to be able to call the local bob's project endpoint as :</p>
+<p><code>http://localhost:8080/my-current-project/app_dev.php/google-drive-notifications-receiver</code>.</p>
+<p>The problem is that bob works on its laptop, he likes to code everywhere and in front of him, Google have to get a fixed URL to make this feature work, as:</p>
+<p><code>https://the-finished-project.com/google-drive-notifications-receiver</code></p>
+<p>...Dilemma !</p>
+<p>Other dilemma :</p>
+<ul>
+<li>Bob don't care about HTTPS to develop his project, he does not even know if it will end one day ;-)</li>
+</ul>
+<p>but:</p>
+<ul>
+<li>Google forces bob to use HTTPS (and not a self-signed certicate!)</li>
+</ul>
+<h3 id="solution">Solution</h3>
+<p>Localhook was made to fix bob's problems.</p>
+<p>How does it works ? Bob configures its project as: &quot;OK Google, send every webhook callbacks to <a href="https://locahook.umasoft.com/bob/my-project">https://locahook.umasoft.com/bob/my-project</a>&quot;.</p>
+<p>And he configure its localhook client to forward theses notification to:</p>
+<p><a href="http://localhost:8080/my-current-project/app_dev.php/google-drive-notifications-receiver">http://localhost:8080/my-current-project/app_dev.php/google-drive-notifications-receiver</a></p>
+<p>Now everything works fine:</p>
+<ul>
+<li>Bob doesn't have to set up a HTTPS configuration signed by an authority until its project gets in production.</li>
+<li>Bob can code everywhere with its laptop (no fixed IP, no dyndns to configure) and he does'nt have to set up its own IP adress on a public domain name.</li>
+<li>Google Drive is happy because its send its notifications to an authority signed SSL fixed domain.</li>
+</ul>
+<h2 id="license">License</h2>
+<p>This project is under the MIT license. See the complete license at root of this project:</p>
+<pre><code>LICENCE</code></pre>
+<h2 id="about">About</h2>
+<p>Localhook is a <a href="https://github.com/lucascherifi">@lucascherifi</a> initiative. See also the <a href="https://github.com/localhook/localhook-server/graphs/contributors">list of contributors</a>.</p>
                     </div>
 
                     <footer>
