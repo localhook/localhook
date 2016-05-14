@@ -61,6 +61,6 @@ menu:
         contributing:
             text: Contributing
             relativeUrl: contributing.html
-        todo:
-            text: Todo list
-            relativeUrl: todo.html
+        github:
+            text: Github
+            absoluteUrl: https://github.com/localhook
