@@ -34,7 +34,7 @@ exclude:
 branch: gh-pages
 
 # Any variable you put in this file is also available in the Twig layouts:
-title: Localhook
+title: Localhook Documentation
 subTitle: Makes webhooks works with you localhost!
 
 # Base URL of the published website (no "/" at the end!)
