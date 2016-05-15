@@ -27,8 +27,7 @@ notifications:
 script:
   - phpunit --coverage-text
 after_success:
-  - if [[ $EXECUTE_DEPLOYMENT == 'true' && $TRAVIS_BRANCH == 'master' && $TRAVIS_PULL_REQUEST == 'false' ]]; then composer install --no-dev ; fi
-  - if [[ $EXECUTE_DEPLOYMENT == 'true' && $TRAVIS_BRANCH == 'master' && $TRAVIS_PULL_REQUEST == 'false' ]]; then ./bin/deploy.sh ; fi
+  - if [[ $EXECUTE_DEPLOYMENT == 'true' && $TRAVIS_BRANCH == 'master' && $TRAVIS_PULL_REQUEST == 'false' && $TRAVIS_TAG != "" ]]; then composer install --no-dev && ./bin/deploy.sh;  fi
 env:
   global:
     secure: ssd0O+4n7Oy5r3BzkwFH7CECNj5LkdWNqicuv04mZmAdznt2GpNcru85py2gHEHD0gRV7UXOpWFEd5748r4F4PpoV7uzOSjPKYia5+T5NZQ+WPX0R5T63pCN2ydFO97j+o0pWSXFzA177h6xfwA6cA1YpKhBsSGEwE/JVniss2pau3GDXHsdldO8Scn1et7FfGKFHHE2LYr5ucRt6VnSM2HVcgDfNWVvFrwIY2+aYDKhZF3FGn46IzWDssrWVr4ykQVV5caWFW3R9lwD0D6PygjaswwSze2oPWTzIk5WHQBweFZ7bJuvO6vZBpiBV/3vJKo0qX3Lp4QMITKmKNN8tsn5nhh+yD2aepX1Q8kgK9XyioSP27V4B5BPFlbYtNTEPJZLoHNNccRB5jPAPJ6TmlOqwO4XQlu4XJEoFi6UQil5xVDTTr0w7ai2sszb+ZFmQBJ0LX/r0lgbTiyyzyOvrCu2GmeqNCUoTzbKBpbUaVk1oSzY5Gb5h5zIuIVn6JJT3olwB/tSMv5oMqOqhbqgPEictUMIwN/4m7xPcjsTgNuOg2Vv1llbbReNBzATaa11Xm7uFd6OKjzorWuz83eSwPZetWecmntoe8MsSGhzGcTDyRa1kj6vM4Iod0TVUPFF1v6FnYj8Jlc3Em7Ley6j4JjSjwVjORd0FwEpaARgOwM=
