@@ -33,6 +33,9 @@ abstract class AbstractCommand extends Command
     /** @var string */
     protected $secret;
 
+    /**
+     * Loads the local configuration from "~/.localhook/config.json" file.
+     */
     protected function loadConfiguration()
     {
         try {
