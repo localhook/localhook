@@ -68,8 +68,8 @@ class UserClient extends AbstractClient implements ClientInterface
     public function executeRetrieveConfigurationFromSecret(
         $secret,
         callable $onSuccess,
-        callable $onAddWebHook,
-        callable $onRemoveWebHook
+        callable $onAddWebHook = null,
+        callable $onRemoveWebHook = null
     ) {
         $this->onAddWebHook = $onAddWebHook;
         $this->onRemoveWebHook = $onRemoveWebHook;
