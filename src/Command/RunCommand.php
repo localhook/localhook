@@ -6,7 +6,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Psr7\Request;
 use Localhook\Localhook\ConfigurationStorage;
-use Localhook\Localhook\Ratchet\UserClient;
+use Localhook\Localhook\Websocket\UserClient;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -65,14 +65,25 @@ class RunCommand extends AbstractCommand
 
         try {
             $this->socketUserClient->start(function () use ($max, $timeout) {
-                $this->io->writeln('Connected.');
+                $this->io->write('Connected. Syncing configuration...');
                 $this->syncConfiguration(function ($configuration) use ($max, $timeout) {
-                    $this->io->note('To administrate your Webhooks, visit the following URL: ' . $configuration['web_url']);
+                    $this->io->writeln('Configuration synced.');
+                    $this->io->success('To administrate your Webhooks, visit the following URL: ' . $configuration['web_url']);
                     $this->detectWebHookConfiguration($this->endpoint, function () use ($max, $timeout) {
                         $url = $this->webHookLocalUrl;
-                        $this->socketUserClient->executeSubscribeWebHook(function () use ($url) {
-                            $this->io->success('Successfully subscribed to ' . $this->endpoint . '. Local URL: ' . $url);
-                            $this->output->writeln('Watch for notification to endpoint ' . $this->endpoint . ' ...');
+                        $this->socketUserClient->executeSubscribeWebHook(function ($message) use ($url) {
+                            $this->io->success("Successfully subscribed to forward {$this->endpoint}.");
+                            $table = new Table($this->output);
+                            $table
+                                ->setRows([
+                                    ['External URL', $message['external_url']],
+                                    ['Local URL', $url],
+                                ]);
+                            $table->render();
+                            $this->output->writeln('Watch for notification...');
+                            while ($this->socketUserClient->waitForMessage()) {
+                                // loop until max configured forward is reached
+                            }
                         }, function ($request) use ($url, $timeout) {
                             if (count($request['query'])) {
                                 $url .= '?' . http_build_query($request['query']);
@@ -81,7 +92,7 @@ class RunCommand extends AbstractCommand
                             $this->sendRequest($request, $url, $timeout);
                         }, function () use ($max) {
                             $this->socketUserClient->stop();
-                            $this->io->warning('Max forward reached (' . $max . ')');
+                            $this->io->success('Max number of forward(s) (' . $max . ') reached. Client closed successfully.');
                         }, $this->secret, $this->endpoint, $max);
                     });
                 }, function ($msg) {
@@ -202,7 +213,7 @@ class RunCommand extends AbstractCommand
             if (!$this->webHookLocalUrl) {
                 $this->webHookLocalUrl = $this->io->ask(
                     'Local URL to call when notification received from endpoint "' . $this->endpoint . '"',
-                    'http://localhost/my-project/notifications'
+                    'http://localhost/' . $this->endpoint . '/notifications'
                 );
                 $this->webHookConfiguration['local_url'] = $this->webHookLocalUrl;
 

@@ -4,7 +4,7 @@ namespace Localhook\Localhook\Command;
 
 use Localhook\Localhook\ConfigurationStorage;
 use Localhook\Localhook\Exceptions\NoConfigurationException;
-use Localhook\Localhook\Ratchet\UserClient;
+use Localhook\Localhook\Websocket\UserClient;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;

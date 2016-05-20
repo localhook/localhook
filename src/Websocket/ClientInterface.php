@@ -1,6 +1,6 @@
 <?php
 
-namespace Localhook\Localhook\Ratchet;
+namespace Localhook\Localhook\Websocket;
 
 interface ClientInterface
 {

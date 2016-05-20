@@ -1,16 +1,16 @@
 <?php
 
-namespace Localhook\Localhook\Ratchet;
+namespace Localhook\Localhook\Websocket;
 
 use Exception;
-use Ratchet\Client\WebSocket;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use WebSocket\Client;
 
-class AbstractClient
+abstract class AbstractClient implements ClientInterface
 {
-    /** @var WebSocket */
-    protected $conn;
+    /** @var Client */
+    private $socket;
 
     /** @var SymfonyStyle */
     private $io;
@@ -37,44 +37,30 @@ class AbstractClient
         $this->io = $io;
     }
 
-    public function start(callable $onConnect)
+    /**
+     * @param callable $onConnect
+     * @param int      $timeout default: 86400 (1 day)
+     */
+    public function start(callable $onConnect, $timeout = 86400)
     {
-        \Ratchet\Client\connect($this->url)->then(function ($conn) use ($onConnect) {
-            $this->conn = $conn;
-            $this->parseMessages();
+        try {
+            $this->socket = new Client($this->url, ['timeout' => $timeout]);
             $onConnect();
-        }, function (Exception $e) {
+        } catch (Exception $e) {
             $this->io->error('Error when trying to connect to the socket "' . $this->url . "\": {$e->getMessage()}\n");
-            $this->stop();
-        });
-    }
-
-    public function parseMessages()
-    {
-        $this->conn->on('message', function ($msg) {
-            $this->verboseLog("MESSAGE RECEIVED: {$msg}", 'info');
-            $msg = json_decode($msg, true);
-            $type = $msg['type'];
-            unset($msg['type']);
-            $comKey = $msg['comKey'];
-            unset($msg['type']);
-            $this->routeInputEvents($type, $msg, $comKey);
-        });
-    }
-
-    public function routeInputEvents($type, $msg, $comKey)
-    {
-        throw new Exception('routeInputEvents method should be implemented.');
+        }
     }
 
     public function getConnexionId()
     {
-        return $this->conn->resourceId;
+        dump($this->socket);
+        die;
+        //return $this->socket->resourceId;
     }
 
     public function stop()
     {
-        $this->conn->close();
+        $this->socket->close();
     }
 
     /**
@@ -89,7 +75,7 @@ class AbstractClient
     {
         if ($msg['status'] == 'ok') {
             if (isset($this->callbacks[$comKey])) {
-                $this->callbacks[$comKey]($msg);
+                return $this->callbacks[$comKey]($msg);
             } else {
                 throw new Exception(
                     'No callback function found for received response: ' .
@@ -105,6 +91,8 @@ class AbstractClient
                 $this->stop();
             }
         }
+
+        return false;
     }
 
     protected function defaultExecute($type, array $msg, callable $onSuccess, callable $onError = null)
@@ -115,8 +103,9 @@ class AbstractClient
             'comKey' => $comKey,
         ], $this->defaultFields, $msg));
         $this->verboseLog("MESSAGE SENT: {$msg}", 'comment');
-        $this->conn->send($msg);
+        $this->socket->send($msg);
         $this->callbacks[$comKey] = $onSuccess;
+        $this->waitForMessage($msg, $comKey);
         if ($onError) {
             $this->errorCallbacks[$comKey] = $onError;
         }
@@ -161,5 +150,18 @@ class AbstractClient
         if ($this->io) {
             $this->io->warning(date('[Y-m-d H:i:s]') . $msg);
         }
+    }
+
+    public function waitForMessage()
+    {
+        $message = $this->socket->receive();
+        $this->verboseLog("MESSAGE RECEIVED: {$message}", 'info');
+        $msg = json_decode($message, true);
+        $type = $msg['type'];
+        unset($msg['type']);
+        $comKey = $msg['comKey'];
+        unset($msg['type']);
+
+        return $this->routeInputEvents($type, $msg, $comKey);
     }
 }

@@ -1,10 +1,10 @@
 <?php
 
-namespace Localhook\Localhook\Ratchet;
+namespace Localhook\Localhook\Websocket;
 
 use Exception;
 
-class UserClient extends AbstractClient implements ClientInterface
+class UserClient extends AbstractClient
 {
     /** @var integer */
     private $max;
@@ -28,25 +28,16 @@ class UserClient extends AbstractClient implements ClientInterface
     {
         switch ($type) {
             case '_retrieveConfigurationFromSecret':
-                $this->defaultReceive($msg, $comKey);
-                break;
             case '_subscribeWebHook':
-                $this->defaultReceive($msg, $comKey);
-                break;
             case '_unsubscribeWebHook':
-                $this->defaultReceive($msg, $comKey);
-                break;
+                return $this->defaultReceive($msg, $comKey);
             case '_forwardRequest':
-                $this->receiveForwardRequest($msg, $comKey);
+                return $this->receiveForwardRequest($msg, $comKey);
                 break;
             case '_forwardAddWebHook':
-                $onAddWebHook = $this->onAddWebHook;
-                $onAddWebHook($msg);
-                break;
+                return $this->{'onAddWebHook'}($msg);
             case '_forwardRemoveWebHook':
-                $onRemoveWebHook = $this->onRemoveWebHook;
-                $onRemoveWebHook($msg);
-                break;
+                return $this->{'onRemoveWebHook'}($msg);
             default:
                 throw new Exception('Type "' . $type . '" not managed');
         }
@@ -62,7 +53,9 @@ class UserClient extends AbstractClient implements ClientInterface
         if (!is_null($this->max) && $this->counter >= $this->max) {
             $maxReachedCallback = $this->maxReachedCallback;
             $maxReachedCallback($comKey);
+            return false;
         }
+        return true;
     }
 
     public function executeRetrieveConfigurationFromSecret(

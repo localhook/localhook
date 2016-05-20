@@ -26,6 +26,6 @@
     "padraic/phar-updater": "^1.0",
     "guzzlehttp/guzzle": "@stable",
     "symfony/filesystem": "@stable",
-    "ratchet/pawl": "^0.2.2"
+    "textalk/websocket": "^1.2"
   }
 }
