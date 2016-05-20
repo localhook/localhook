@@ -61,10 +61,11 @@ class RunCommand extends AbstractCommand
 
         $this->socketUserClient = new UserClient($this->serverUrl);
         $this->socketUserClient->setIo($this->io);
-        $this->io->writeln('Connecting to ' . $this->socketUserClient->getUrl() . ' ...');
+        $this->io->write('Connecting to ' . $this->socketUserClient->getUrl() . ' ...');
 
         try {
             $this->socketUserClient->start(function () use ($max, $timeout) {
+                $this->io->writeln('Connected.');
                 $this->syncConfiguration(function ($configuration) use ($max, $timeout) {
                     $this->io->note('To administrate your Webhooks, visit the following URL: ' . $configuration['web_url']);
                     $this->detectWebHookConfiguration($this->endpoint, function () use ($max, $timeout) {
